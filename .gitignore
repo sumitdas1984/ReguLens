@@ -8,3 +8,26 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Data - keep all client data private (including sample/test data)
+data/
+!data/README.md
+*.csv
+*.sql.backup
+*.csv.backup
+
+# Environment and secrets
+.env
+.env.local
+*.key
+*.pem
+secrets/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# IDE
+.vscode/
+.idea/

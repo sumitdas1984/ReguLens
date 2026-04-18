@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-ReguLens is an AI-native platform designed to transform the Tax, Accounting, and Audit (TAP) domain from a reactive research-based workflow to a proactive, agentic monitoring ecosystem. By leveraging intelligent automation, ReguLens ensures that no regulatory change in California, Texas, or Florida goes unanalyzed.
+ReguLens is an AI-native platform designed to transform the Tax, Accounting, and Audit Professional(TAAP) domain from a reactive research-based workflow to a proactive, agentic monitoring ecosystem. By leveraging intelligent automation, ReguLens ensures that no regulatory change in California, Texas, or Florida goes unanalyzed.
 
 ---
 
@@ -53,6 +53,6 @@ Built on a modular, scalable architecture that grows with jurisdiction expansion
 
 ---
 
-_Building an autonomous infrastructure for the future of the TAP domain._
+_Building an autonomous infrastructure for the future of the TAAP domain._
 
 #TaxTech #RegTech #GenAI #ComplianceAutomation #ReguLens
