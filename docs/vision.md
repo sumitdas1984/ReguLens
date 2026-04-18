@@ -127,8 +127,8 @@ Professional firms in the Tax, Accounting, and Audit (TAP) sector face a critica
 **Objective:** Move beyond keyword matching to understand regulatory intent and impact.
 
 **Key Capabilities:**
-- Domain-specific LLM reasoning
-- High-dimensional vector embeddings
+- Domain-specific AI that understands tax and legal language
+- Meaning-based analysis, not just keyword matching
 - Contextual mapping to client scenarios
 
 ### 3. Contextual Relevance
@@ -143,8 +143,8 @@ Professional firms in the Tax, Accounting, and Audit (TAP) sector face a critica
 **Objective:** Build production-ready infrastructure that scales with firm growth.
 
 **Key Capabilities:**
-- Microservices-based design (inspired by MiDAS framework)
-- Federated data pipeline
+- Modular, flexible design that grows with jurisdiction expansion
+- Distributed monitoring across multiple regulatory sources
 - Secure, auditable, and transparent operations
 
 ### 5. Trust & Transparency
@@ -152,8 +152,8 @@ Professional firms in the Tax, Accounting, and Audit (TAP) sector face a critica
 
 **Key Capabilities:**
 - "Audit Trail of Thought" for all recommendations
-- Security and interpretability layer
-- Private client data handling
+- Explainable AI with clear reasoning for every decision
+- Private, secure client data handling
 
 ---
 
@@ -203,12 +203,12 @@ Leverage domain-specific models and reasoning, not general-purpose AI.
 ## Strategic Positioning
 
 **Market Category:** RegTech / TaxTech / Compliance Automation  
-**Technology Category:** AI-Native Microservices Platform  
+**Technology Category:** AI-Native Compliance Platform  
 **Go-to-Market:** B2B SaaS for professional services firms
 
 ### Competitive Moat
 
-1. **Domain-Specific AI:** Tax/legal-tuned LLMs, not generic chatbots
+1. **Domain-Specific AI:** Tax and legal expertise built into the AI, not generic chatbots
 2. **Agentic Architecture:** Autonomous operation vs. human-in-the-loop tools
 3. **Context Catalogue:** Proprietary client-to-regulation mapping
 4. **First-Mover Advantage:** Building infrastructure before market matures
