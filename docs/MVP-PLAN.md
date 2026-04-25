@@ -48,20 +48,21 @@ Tax professionals face a **Manual Discovery Gap**:
 ### What's IN (Must-Have)
 
 1. **Automated Monitoring** ⚠️ UPDATED BASED ON RESEARCH
-   - **Focus:** Texas + Florida (most scrapable sources)
-   - Monitor 3 working sources:
+   - **Focus:** Texas + Florida + California (scrapable sources)
+   - Monitor 4 working sources:
+     - ✅ California FTB - Newsroom
      - ✅ Texas Comptroller - Publications
      - ✅ Texas Comptroller - Tax Updates
      - ✅ Florida DOR - TIPs (Tax Information Publications)
    - Detect new publications within 24 hours
-   - **Why the pivot:** CA sources lack structured publication feeds (explored but not viable for MVP)
+   - **Why the expansion:** CA FTB Newsroom provides structured publication feed (now viable for MVP)
 
-2. **Client Profile Management** ⚠️ UPDATED FOR TX/FL FOCUS
+2. **Client Profile Management** ⚠️ UPDATED FOR CA/TX/FL FOCUS
    - Simple web form to create client profiles
    - Key attributes:
      - Entity type (C-Corp, S-Corp, LLC, etc.)
      - Industry
-     - **State nexus:** TX nexus (Y/N), FL nexus (Y/N)
+     - **State nexus:** CA nexus (Y/N), TX nexus (Y/N), FL nexus (Y/N)
      - Revenue range
      - Tax credits used (R&D, franchise tax deductions, other)
    - CSV import for bulk setup (20+ clients)
@@ -87,7 +88,7 @@ Tax professionals face a **Manual Discovery Gap**:
 
 ### What's OUT (Post-MVP)
 
-- ❌ Multi-state (TX, FL) - CA only for MVP
+- ❌ Additional states beyond CA/TX/FL
 - ❌ Mobile app - email + web is enough
 - ❌ Team collaboration features
 - ❌ Advanced search/filters
@@ -121,15 +122,14 @@ Tax professionals face a **Manual Discovery Gap**:
 
 ### 1. Source Monitoring
 
-**CA Sources to Monitor:**
+**MVP Sources to Monitor:**
 
 | Source | URL | Check Frequency | Format |
 |--------|-----|-----------------|--------|
-| CA FTB News | ftb.ca.gov/about-ftb/newsroom | Daily | HTML/RSS |
-| CA FTB Legal Rulings | ftb.ca.gov/tax-pros/law | Weekly | PDF |
-| CDTFA Notices | cdtfa.ca.gov/lawguides | Daily | HTML |
-| CA Legislature Bills | leginfo.legislature.ca.gov | Daily (in session) | HTML |
-| IRS Revenue Rulings | irs.gov/newsroom | Weekly | HTML |
+| CA FTB Newsroom | ftb.ca.gov/about-ftb/newsroom | Daily | HTML |
+| TX Comptroller Publications | comptroller.texas.gov/taxes/publications/ | Daily | HTML |
+| TX Comptroller Taxes | comptroller.texas.gov/taxes/ | Daily | HTML |
+| FL DOR TIPs | floridarevenue.com/taxes/tips/Pages/default.aspx | Daily | HTML |
 
 **Detection Logic:**
 - Scrape each source daily
@@ -148,6 +148,8 @@ Client:
   - entity_type (enum: C-Corp, S-Corp, LLC, Partnership, Sole Prop)
   - industry (NAICS code or simple dropdown)
   - ca_nexus (boolean)
+  - tx_nexus (boolean)
+  - fl_nexus (boolean)
   - revenue_range (enum: <1M, 1-10M, 10-50M, 50M+)
   - tax_credits_used (array: R&D, Film, Other)
   - created_at
@@ -156,7 +158,7 @@ Client:
 
 **Why these attributes?**
 - Entity type → determines tax treatment
-- CA nexus → filters to CA-only regulations
+- State nexus (CA/TX/FL) → filters regulations by jurisdiction
 - Revenue → threshold tests for applicability
 - Tax credits → alerts about credit changes
 
@@ -166,15 +168,15 @@ Client:
 
 **Prompt Template (for Claude API):**
 ```
-You are a California tax expert analyzing a new regulatory publication.
+You are a multi-state tax expert analyzing a new regulatory publication.
 
 PUBLICATION:
-[Title, Date, Full Text]
+[Title, Date, Full Text, Source State]
 
 CLIENT PROFILE:
 - Entity Type: [C-Corp]
 - Industry: [Software/SaaS]
-- CA Nexus: Yes
+- State Nexus: CA - Yes, TX - Yes, FL - No
 - Revenue: $10-50M
 - Tax Credits: R&D
 
@@ -210,7 +212,7 @@ Output JSON format:
 5. Done - monitoring starts automatically
 
 **Daily Use:**
-1. Receive email: "ReguLens Alert: CA R&D Credit Expansion affects 3 clients"
+1. Receive email: "ReguLens Alert: TX Franchise Tax Update affects 2 clients"
 2. Click link → dashboard
 3. Review: summary, affected clients, action items
 4. Mark as "reviewed"
@@ -228,7 +230,7 @@ Output JSON format:
 - [ ] Client CRUD: create/edit/list profiles
 
 ### Week 2: Monitoring + AI
-- [ ] Build scraper for 2-3 CA sources (FTB, CDTFA)
+- [ ] Build scrapers for 4 sources (CA FTB, TX Comptroller x2, FL DOR)
 - [ ] Cron job to run daily
 - [ ] Store publications in database
 - [ ] Integrate Claude API for summarization
@@ -254,7 +256,7 @@ Output JSON format:
 ## Success Metrics (MVP)
 
 **Product:**
-- Detect new CA publications within 24 hours (target: >90%)
+- Detect new publications within 24 hours across all 4 sources (target: >90%)
 - Alert precision: >75% of alerts are actually relevant
 - System uptime: >95%
 
@@ -275,15 +277,17 @@ Output JSON format:
 - [ ] Which LLM? Claude vs GPT-4? (Cost vs quality)
 - [ ] Email provider? Resend vs SendGrid?
 - [ ] How to handle ambiguous matches (MAYBE impact)?
-- [ ] Scraping legal/TOS concerns for CA gov sites?
+- [ ] Scraping legal/TOS concerns for government sites?
 - [ ] Pricing model thinking: per-user? per-client? flat?
+- [ ] Multi-state matching complexity - prioritize by state nexus?
 
 ---
 
 ## Post-MVP Roadmap (Future)
 
 **V2 (Month 2-3):**
-- Add Texas, Florida sources
+- Add more CA sources (CDTFA, Legislature)
+- Add NY, IL, and other high-priority states
 - Mobile-responsive improvements
 - Advanced filters
 
@@ -311,8 +315,10 @@ src/
 │   └── DashboardStats.tsx
 ├── lib/
 │   ├── scrapers/
-│   │   ├── ca-ftb.ts
-│   │   ├── ca-cdtfa.ts
+│   │   ├── ca-ftb-newsroom.ts
+│   │   ├── tx-comptroller-publications.ts
+│   │   ├── tx-comptroller-taxes.ts
+│   │   └── fl-dor-tips.ts
 │   └── ai/
 │       ├── claude.ts
 │       └── matcher.ts

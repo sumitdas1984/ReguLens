@@ -10,24 +10,31 @@
 
 ### ✅ WORKING SOURCES (Scrapable)
 
-**Research Date:** 2026-04-22  
-**Finding:** Most government tax sites are NOT structured for easy monitoring. Only 3 viable sources found.
+**Research Date:** 2026-04-22 (Updated: 2026-04-24)  
+**Finding:** Most government tax sites are NOT structured for easy monitoring. 4 viable sources found.
 
-**1. Florida Department of Revenue - TIPs**
+**1. California FTB - Newsroom**
+- **URL:** https://www.ftb.ca.gov/about-ftb/newsroom/index.html
+- **Status:** ✅ Scrapable
+- **Focus:** Tax news, bulletins, updates
+- **Format:** HTML list
+- **Why it works:** Centralized newsroom feed
+
+**2. Florida Department of Revenue - TIPs**
 - **URL:** https://floridarevenue.com/taxes/tips/Pages/default.aspx
 - **Status:** ✅ Scrapable
 - **Focus:** Tax Information Publications
-- **Format:** Likely HTML list/table
+- **Format:** HTML list/table
 - **Why it works:** Dedicated publications page
 
-**2. Texas Comptroller - Publications**
+**3. Texas Comptroller - Publications**
 - **URL:** https://comptroller.texas.gov/taxes/publications/
 - **Status:** ✅ Scrapable
 - **Focus:** Tax policy letters, bulletins
 - **Format:** HTML list
 - **Why it works:** Structured publications index
 
-**3. Texas Comptroller - Taxes (General)**
+**4. Texas Comptroller - Taxes (General)**
 - **URL:** https://comptroller.texas.gov/taxes/
 - **Status:** ✅ Scrapable (may need exploration)
 - **Focus:** General tax updates
@@ -38,8 +45,8 @@
 
 ### ❌ DIFFICULT SOURCES (Explored but not viable for MVP)
 
-**California Sources:**
-- CA Franchise Tax Board (ftb.ca.gov) - No clear publications feed
+**California Sources (excluding FTB Newsroom):**
+- CA FTB Legal Rulings (ftb.ca.gov/tax-pros/law) - PDF-heavy, no central feed
 - CA CDTFA (cdtfa.ca.gov) - Scattered updates, no central index
 - CA Legislature (leginfo.legislature.ca.gov) - Complex, requires deep scraping
 - CA EDD (edd.ca.gov) - Unstructured
@@ -56,19 +63,19 @@
 
 ---
 
-## MVP PIVOT: Start with What Works
+## MVP STRATEGY: Focus on Working Sources
 
-**New Strategy:** Focus on the 3 working sources (TX + FL) instead of forcing CA.
+**Strategy:** Focus on 4 working sources (CA FTB Newsroom + TX x2 + FL) for reliable monitoring.
 
 **Pros:**
 - Can ship faster with reliable monitoring
-- TX and FL are still valuable markets
-- Proves the concept with real data
-- Can add CA later with different approach
+- CA, TX, and FL cover major markets
+- Proves the concept with real multi-state data
+- CA FTB Newsroom provides critical CA coverage
 
-**Cons:**
-- CA is largest market (we deprioritized it)
-- May need different strategy for CA (email subscriptions, API partnerships?)
+**Remaining Gaps:**
+- Other CA sources (CDTFA, Legislature) still difficult - post-MVP
+- May need different strategy for comprehensive CA coverage later
 
 ---
 
@@ -128,6 +135,8 @@
 
 **Geographic:**
 - Has California nexus? (Y/N)
+- Has Texas nexus? (Y/N)
+- Has Florida nexus? (Y/N)
 - Other states? (for future expansion)
 
 **Financial:**
@@ -149,12 +158,15 @@
 - Entity: C-Corp
 - Industry: Software
 - CA Nexus: Yes (HQ in SF)
+- TX Nexus: Yes (remote workers)
+- FL Nexus: No
 - Revenue: $10-50M
 - Credits: Federal + CA R&D
 - Activities: AI/ML development, cloud-based
 
 **Impact scenarios:**
 - CA R&D credit expansion → HIGH impact
+- TX franchise tax apportionment changes → MEDIUM impact
 - SaaS apportionment rule changes → MEDIUM impact
 - Remote worker nexus guidance → MEDIUM impact
 
@@ -162,13 +174,15 @@
 - Entity: C-Corp
 - Industry: Manufacturing (auto parts)
 - CA Nexus: Yes (warehouse)
+- TX Nexus: Yes (operations)
+- FL Nexus: Yes (distribution center)
 - Revenue: $100M+
 - Credits: None
 - Activities: Multi-state distribution
 
 **Impact scenarios:**
-- CA manufacturing exemptions → MEDIUM impact
-- Sales tax nexus changes → HIGH impact
+- CA/TX/FL manufacturing exemptions → MEDIUM impact
+- Multi-state sales tax nexus changes → HIGH impact
 
 ---
 
@@ -276,9 +290,9 @@
 ## MVP Assumptions to Validate
 
 - [ ] Tax pros will trust AI-generated analysis (with audit trail)
-- [ ] CA-only is sufficient for initial value (or need multi-state?)
+- [ ] CA/TX/FL coverage is sufficient for initial value
 - [ ] Email alerts preferred over dashboard-only
-- [ ] Client profile data entry not too burdensome
+- [ ] Client profile data entry not too burdensome (especially multi-state nexus)
 - [ ] $200-500/month pricing is acceptable
 - [ ] Daily monitoring frequency is sufficient (vs real-time)
 
@@ -316,9 +330,9 @@
 - [ ] Manual scraping test (visit 5 CA sources, extract sample publications)
 
 **Week 2 (Build):**
-- [ ] Build scrapers for top 3 CA sources
+- [ ] Build scrapers for 4 sources (CA FTB Newsroom, TX x2, FL DOR)
 - [ ] Test AI analysis on 10 real publications
-- [ ] Create client profile schema
+- [ ] Create client profile schema with multi-state nexus
 
 **Week 3 (Polish):**
 - [ ] Matching engine + alerts
@@ -348,12 +362,16 @@
 ## Decision Log
 
 **2026-04-22:**
-- Decided: CA-only for MVP (not multi-state)
+- Decided: Multi-state MVP (CA/TX/FL) with 4 working sources
 - Decided: 2-4 week sprint timeline
 - Decided: Focus on Tax Partner + Compliance Manager personas
 - Decided: Supabase + Next.js stack
 - Open: Which LLM (Claude vs GPT)?
 - Open: Email provider (Resend vs SendGrid)?
+
+**2026-04-24:**
+- Added: CA FTB Newsroom as 4th working source
+- Updated: MVP now covers CA/TX/FL (expanded from TX/FL only)
 
 ---
 
