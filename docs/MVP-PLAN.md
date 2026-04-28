@@ -57,15 +57,17 @@ Tax professionals face a **Manual Discovery Gap**:
    - Detect new publications within 24 hours
    - **Why the expansion:** CA FTB Newsroom provides structured publication feed (now viable for MVP)
 
-2. **Client Profile Management** ⚠️ UPDATED FOR CA/TX/FL FOCUS
-   - Simple web form to create client profiles
-   - Key attributes:
+2. **Client Data (CSV-Based)** ⚠️ NO UI NEEDED FOR MVP
+   - Use existing `client_profiles_mvp.csv` (100 sample clients)
+   - One-time CSV import via script or API endpoint
+   - Read-only client data for matching
+   - Key attributes used for AI matching:
      - Entity type (C-Corp, S-Corp, LLC, etc.)
-     - Industry
+     - Industry (NAICS code)
      - **State nexus:** CA nexus (Y/N), TX nexus (Y/N), FL nexus (Y/N)
-     - Revenue range
-     - Tax credits used (R&D, franchise tax deductions, other)
-   - CSV import for bulk setup (20+ clients)
+     - Revenue range (<1M, 1-10M, 10-50M, 50M+)
+     - Tax credits used (R&D, Film, Other)
+   - **Scope:** No client creation/edit UI in MVP - just use CSV data
 
 3. **AI Impact Analysis**
    - Use LLM (Claude/GPT) to:
@@ -88,33 +90,43 @@ Tax professionals face a **Manual Discovery Gap**:
 
 ### What's OUT (Post-MVP)
 
+- ❌ Client profile UI (create/edit/delete clients) - using CSV data only
 - ❌ Additional states beyond CA/TX/FL
 - ❌ Mobile app - email + web is enough
 - ❌ Team collaboration features
 - ❌ Advanced search/filters
 - ❌ Integrations with tax software
-- ❌ API access
+- ❌ API access for external tools
 - ❌ White-label/multi-tenant
+- ❌ User management (multi-user support) - single user MVP
 
 ---
 
-## Technical Stack (Proposed)
+## Technical Stack
 
 ### Frontend
 - **Framework:** Next.js + React + TypeScript
 - **UI:** Tailwind CSS + shadcn/ui
-- **Hosting:** Vercel
+- **Hosting:** Vercel (or Railway static hosting)
 
 ### Backend
-- **Platform:** Supabase (auth + database + API)
+- **Framework:** FastAPI + Python 3.11+
 - **Database:** PostgreSQL
-- **AI:** Claude API (Anthropic) for analysis
-- **Email:** Resend or SendGrid
+- **ORM:** SQLAlchemy + Alembic (migrations)
+- **Auth:** FastAPI-Users or JWT tokens
+- **API Docs:** Auto-generated OpenAPI (built-in FastAPI)
 
-### Monitoring/Scraping
-- **Web Scraping:** Playwright or Puppeteer
-- **Scheduling:** Cron jobs (Vercel/Railway)
-- **Storage:** Supabase Storage for PDFs
+### Background Jobs & Processing
+- **Scheduler:** APScheduler (cron jobs for daily scraping)
+- **Web Scraping:** Playwright + BeautifulSoup4
+- **AI Processing:** Anthropic Python SDK (Claude API)
+- **Email:** Resend or SendGrid Python SDK
+- **Async Tasks:** FastAPI BackgroundTasks + asyncio
+
+### Storage & Deployment
+- **File Storage:** Local filesystem or S3-compatible storage
+- **Deployment:** Railway or Render (single service)
+- **Database Hosting:** Railway PostgreSQL or Render PostgreSQL
 
 ---
 
@@ -139,21 +151,81 @@ Tax professionals face a **Manual Discovery Gap**:
 
 ---
 
-### 2. Client Profile Schema (Simplified for MVP)
+### 2. Database Models (MVP Schema)
 
+**Client Model:**
+
+```python
+# models/client.py
+from sqlalchemy import Column, String, Boolean, DateTime, ARRAY
+from sqlalchemy.dialects.postgresql import UUID
+import uuid
+
+class Client(Base):
+    __tablename__ = "clients"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String, nullable=False)  # Client code (e.g., TECH_001)
+    entity_type = Column(String, nullable=False)  # C-Corp, S-Corp, LLC, Partnership, Sole Prop
+    industry = Column(String, nullable=False)
+    industry_naics = Column(String, nullable=True)
+    ca_nexus = Column(Boolean, default=False)
+    tx_nexus = Column(Boolean, default=False)
+    fl_nexus = Column(Boolean, default=False)
+    revenue_range = Column(String, nullable=False)  # <1M, 1-10M, 10-50M, 50M+
+    tax_credits_used = Column(ARRAY(String), default=[])  # [R&D, Film, Other]
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    # Note: No user_id for MVP - all clients managed by single hardcoded user
+    # V2: Add user_id foreign key for multi-user support
 ```
-Client:
-  - id (UUID)
-  - name (encrypted)
-  - entity_type (enum: C-Corp, S-Corp, LLC, Partnership, Sole Prop)
-  - industry (NAICS code or simple dropdown)
-  - ca_nexus (boolean)
-  - tx_nexus (boolean)
-  - fl_nexus (boolean)
-  - revenue_range (enum: <1M, 1-10M, 10-50M, 50M+)
-  - tax_credits_used (array: R&D, Film, Other)
-  - created_at
-  - updated_at
+
+**Publication Model:**
+
+```python
+# models/publication.py
+class Publication(Base):
+    __tablename__ = "publications"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    title = Column(String, nullable=False)
+    state = Column(String, nullable=False)  # CA, TX, FL
+    source = Column(String, nullable=False)  # e.g., "CA FTB Newsroom"
+    url = Column(String, nullable=False)
+    content = Column(Text)  # Full text or summary
+    published_date = Column(DateTime(timezone=True))
+    scraped_at = Column(DateTime(timezone=True), server_default=func.now())
+    processed = Column(Boolean, default=False)  # Has AI processing completed?
+```
+
+**Alert Model:**
+
+```python
+# models/alert.py
+class Alert(Base):
+    __tablename__ = "alerts"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    publication_id = Column(UUID, ForeignKey('publications.id'), nullable=False)
+    client_id = Column(UUID, ForeignKey('clients.id'), nullable=False)
+    
+    # AI analysis results
+    summary = Column(Text)  # 2-3 sentence summary
+    affects_client = Column(String)  # YES, MAYBE, NO
+    impact_level = Column(String)  # HIGH, MEDIUM, LOW
+    explanation = Column(Text)  # Why this affects the client
+    action_items = Column(ARRAY(String))  # What client should do
+    reasoning = Column(Text)  # AI reasoning
+    
+    # Status tracking
+    email_sent = Column(Boolean, default=False)
+    reviewed = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    # Relationships
+    publication = relationship("Publication", back_populates="alerts")
+    client = relationship("Client", back_populates="alerts")
 ```
 
 **Why these attributes?**
@@ -161,24 +233,151 @@ Client:
 - State nexus (CA/TX/FL) → filters regulations by jurisdiction
 - Revenue → threshold tests for applicability
 - Tax credits → alerts about credit changes
+- Alert tracks AI analysis and delivery status
 
 ---
 
-### 3. AI Matching Logic
+### 3. Alert Workflow (MVP)
 
-**Prompt Template (for Claude API):**
+**The User Model:**
+- ReguLens is for **tax professionals** who manage multiple clients
+- Sarah (Tax Partner) manages 80+ clients
+- When a regulation affects ANY client, Sarah gets ONE email
+
+**MVP Simplification:**
+- Single hardcoded recipient (configured in `.env`)
+- All 100 CSV clients "belong" to this recipient
+- No user management, no auth needed
+
+**Alert Flow:**
+
 ```
-You are a multi-state tax expert analyzing a new regulatory publication.
+1. Scraper finds new publication
+   └─> Store in database (publications table)
+
+2. AI Processing Job triggers
+   ├─> For each client (filtered by state nexus):
+   │   ├─> Call Claude API to analyze match
+   │   ├─> If affects_client = YES or MAYBE:
+   │   │   └─> Create Alert record
+   │   └─> Continue to next client
+   └─> Mark publication as processed
+
+3. If any alerts created:
+   └─> Send ONE email to configured recipient
+       ├─> Include publication summary
+       ├─> List all affected clients with impact levels
+       ├─> Include action items per client
+       └─> Mark alerts as email_sent = True
+
+4. Store alerts for audit trail / dashboard
+```
+
+**Configuration (`.env`):**
+
+```bash
+# Alert recipient (hardcoded for MVP)
+ALERT_RECIPIENT_EMAIL=your-email@example.com
+ALERT_RECIPIENT_NAME="Tax Professional (MVP)"
+
+# Anthropic API for AI matching
+ANTHROPIC_API_KEY=sk-ant-...
+
+# Email service (Resend or SendGrid)
+RESEND_API_KEY=re_...
+```
+
+**Email Template Example:**
+
+```
+Subject: 🚨 ReguLens Alert: TX Franchise Tax Apportionment Rule Change
+
+Hi Tax Professional,
+
+A new regulation has been detected that affects 3 of your clients.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PUBLICATION DETAILS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Title: Franchise Tax Apportionment Formula Update
+Source: Texas Comptroller - Publications
+State: Texas
+Date: April 29, 2026
+URL: https://comptroller.texas.gov/taxes/publications/...
+
+Summary: Texas Comptroller announces changes to franchise tax 
+apportionment rules for multi-state businesses, effective Q3 2026.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+AFFECTED CLIENTS (3)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. TECH_002 - Software Publishing (Austin, TX)
+   Impact: HIGH
+   Reason: C-Corp with multi-state nexus (TX, CA, FL, NY). Revenue 
+   $5-10M. Uses franchise tax deductions. Apportionment formula 
+   change will directly affect tax calculation.
+   
+   Action Items:
+   • Review current apportionment methodology
+   • Recalculate Q3 franchise tax estimates
+   • Consult with client on multi-state activity changes
+
+2. MFG_001 - Automotive Parts Manufacturing (Austin, TX)
+   Impact: MEDIUM
+   Reason: Large C-Corp ($100M+) with TX/CA/FL/MI/OH nexus. High 
+   revenue means material dollar impact from formula changes.
+   
+   Action Items:
+   • Assess impact of new formula on tax liability
+   • Update quarterly estimates if needed
+
+3. RETAIL_002 - Specialty Retail (Dallas, TX)
+   Impact: LOW
+   Reason: LLC with TX/CA/FL nexus but primarily TX-based revenue. 
+   Apportionment changes may have minimal impact.
+   
+   Action Items:
+   • General awareness, monitor for further guidance
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+View full details: [Dashboard URL]
+
+This alert was generated by ReguLens AI monitoring.
+```
+
+---
+
+### 4. AI Matching Logic
+
+**Python Implementation:**
+
+```python
+# ai/matcher.py
+from anthropic import AsyncAnthropic
+import json
+
+async def match_publication_to_client(publication, client):
+    """Use Claude to determine if publication affects client."""
+    
+    anthropic = AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
+    
+    prompt = f"""You are a multi-state tax expert analyzing a new regulatory publication.
 
 PUBLICATION:
-[Title, Date, Full Text, Source State]
+Title: {publication.title}
+Date: {publication.date}
+State: {publication.state}
+Content: {publication.content}
 
 CLIENT PROFILE:
-- Entity Type: [C-Corp]
-- Industry: [Software/SaaS]
-- State Nexus: CA - Yes, TX - Yes, FL - No
-- Revenue: $10-50M
-- Tax Credits: R&D
+- Entity Type: {client.entity_type}
+- Industry: {client.industry}
+- State Nexus: CA={client.ca_nexus}, TX={client.tx_nexus}, FL={client.fl_nexus}
+- Revenue: {client.revenue_range}
+- Tax Credits: {', '.join(client.tax_credits_used)}
 
 TASK:
 1. Summarize the regulation in 2-3 sentences
@@ -189,67 +388,125 @@ TASK:
    - Action items: What the client should do
 4. Provide your reasoning
 
-Output JSON format:
-{
+Output ONLY valid JSON in this format:
+{{
   "summary": "...",
   "affects_client": "YES/NO/MAYBE",
   "impact_level": "HIGH/MEDIUM/LOW",
   "explanation": "...",
   "action_items": ["...", "..."],
   "reasoning": "..."
-}
+}}"""
+
+    message = await anthropic.messages.create(
+        model="claude-sonnet-4",
+        max_tokens=1024,
+        messages=[{"role": "user", "content": prompt}]
+    )
+    
+    return json.loads(message.content[0].text)
 ```
 
 ---
 
 ### 4. User Flows
 
-**Onboarding:**
-1. Sign up (email + password)
-2. Create first client profile (web form)
-3. Or upload CSV with 20+ clients
-4. Configure alert preferences (immediate vs daily digest)
-5. Done - monitoring starts automatically
+**Initial Setup (One-Time):**
+1. Deploy backend with database to Railway
+2. Configure alert recipient email in `.env`
+3. Run CSV import script to load 100 sample clients
+4. Verify scrapers are running (manual trigger or check logs)
+5. Monitoring starts automatically (daily cron at 8 AM)
 
-**Daily Use:**
-1. Receive email: "ReguLens Alert: TX Franchise Tax Update affects 2 clients"
-2. Click link → dashboard
-3. Review: summary, affected clients, action items
-4. Mark as "reviewed"
-5. Take action (outside ReguLens for MVP)
+**Daily Automated Flow:**
+1. **8:00 AM:** Scrapers run automatically (4 sources)
+2. **8:05 AM:** AI processing starts for new publications
+   - Matches against 100 clients
+   - Creates alerts for affected clients
+3. **8:10 AM:** Email sent if any alerts generated
+   - One email with all affected clients
+   - Sent to configured recipient
+
+**User Interaction (Email-Driven):**
+1. Receive email: "ReguLens Alert: TX Franchise Tax Update affects 3 clients"
+2. Read summary and affected client list in email
+3. Click "View Publication" to see source
+4. Take action with clients (outside ReguLens)
+5. Optional: Mark as reviewed in dashboard (if built)
+
+**Note:** No user signup/login in MVP - all alerts go to one configured email
 
 ---
 
 ## 2-4 Week Build Plan
 
-### Week 1: Core Infrastructure
-- [ ] Set up Next.js + Supabase project
-- [ ] Auth: email/password login
-- [ ] Database schema (clients, publications, alerts)
-- [ ] Simple dashboard shell (login, nav)
-- [ ] Client CRUD: create/edit/list profiles
+### Week 1: Core Infrastructure + Database
+- [ ] Set up FastAPI project structure (`backend/` directory)
+- [ ] Environment configuration (`.env` file)
+  - [ ] Database connection string
+  - [ ] Alert recipient email
+  - [ ] API keys placeholders
+- [ ] Database setup: PostgreSQL + SQLAlchemy models
+  - [ ] Client model (with nexus, entity type, revenue, etc.)
+  - [ ] Publication model (title, source, state, URL, content)
+  - [ ] Alert model (links publication → client, stores AI results)
+- [ ] Alembic migrations setup (`alembic init`)
+- [ ] Create initial migration, run on Railway PostgreSQL
+- [ ] CSV import script: `scripts/import_clients.py`
+  - [ ] Read `client_profiles_mvp.csv`
+  - [ ] Transform and insert into database
+- [ ] Test: Import 100 clients successfully
+- [ ] Basic API endpoints (FastAPI routes)
+  - [ ] GET /clients (list all)
+  - [ ] GET /publications (list recent)
+  - [ ] GET /alerts (list recent)
+- [ ] Deploy skeleton to Railway (backend + database)
 
-### Week 2: Monitoring + AI
+### Week 2: Scraping + Storage
 - [ ] Build scrapers for 4 sources (CA FTB, TX Comptroller x2, FL DOR)
-- [ ] Cron job to run daily
-- [ ] Store publications in database
-- [ ] Integrate Claude API for summarization
-- [ ] Test AI matching on 10 real examples
+  - [ ] CA FTB Newsroom scraper (Playwright/BeautifulSoup)
+  - [ ] TX Comptroller Publications scraper
+  - [ ] TX Comptroller Taxes scraper
+  - [ ] FL DOR TIPs scraper
+- [ ] Publication storage: database model + API endpoints
+- [ ] APScheduler setup: daily cron jobs
+- [ ] Test scraping locally + manual run endpoint
+- [ ] Store scraped publications in database
 
-### Week 3: Alerts + Dashboard
-- [ ] Build matching engine (publications → clients)
-- [ ] Email alert system (Resend/SendGrid)
-- [ ] Dashboard: view alerts, client list
-- [ ] Mark alerts as reviewed
-- [ ] Basic audit trail
+### Week 3: AI Matching + Alerts
+- [ ] Claude API integration (Anthropic SDK)
+  - [ ] Environment variable for API key
+  - [ ] Test basic Claude API call
+- [ ] AI matching function: `ai/matcher.py`
+  - [ ] Match one publication to one client
+  - [ ] Parse JSON response from Claude
+  - [ ] Handle errors/retries
+- [ ] Background job: Process new publications
+  - [ ] For each unprocessed publication:
+    - [ ] Filter clients by state nexus (only match TX clients to TX pubs)
+    - [ ] Call AI matcher for each relevant client
+    - [ ] Create Alert records for YES/MAYBE matches
+    - [ ] Mark publication as processed
+- [ ] Email alert system
+  - [ ] Resend or SendGrid integration
+  - [ ] Email template builder: format publication + affected clients
+  - [ ] Send one email per publication (with all affected clients)
+  - [ ] Mark alerts as email_sent=True
+- [ ] Test end-to-end: Scrape → AI → Store → Email
+- [ ] Optional: Simple dashboard to view alert history
 
-### Week 4: Polish + Test
-- [ ] CSV import for client profiles
-- [ ] Alert preferences (immediate vs digest)
-- [ ] Error handling and edge cases
-- [ ] Test with 5-10 real client profiles
-- [ ] Deploy to production
-- [ ] Share with 2-3 beta users
+### Week 4: Polish, Test, Deploy
+- [ ] Error handling + logging (for scrapers and AI failures)
+- [ ] Retry logic for failed scrapes/AI calls
+- [ ] Audit trail: track when publications detected/processed
+- [ ] Test end-to-end with real client data (100 profiles from CSV)
+- [ ] Manual scraper trigger endpoint (for testing/debugging)
+- [ ] Dashboard improvements: show scraper status, recent publications
+- [ ] Alert history view (past 30 days)
+- [ ] Production deployment to Railway (backend + database)
+- [ ] Frontend deployment (simple dashboard) or skip if time-constrained
+- [ ] Run for 1 week, monitor for issues
+- [ ] Share with 1-2 early users + collect feedback
 
 ---
 
@@ -257,29 +514,42 @@ Output JSON format:
 
 **Product:**
 - Detect new publications within 24 hours across all 4 sources (target: >90%)
-- Alert precision: >75% of alerts are actually relevant
-- System uptime: >95%
+- Alert precision: >75% of alerts are actually relevant to matched clients
+- System uptime: >95% (daily scraper runs without failure)
+- AI matching completes within 5 minutes of publication detection
 
-**User:**
-- 5 beta users onboarded
-- 20+ client profiles created
-- 10+ alerts delivered
-- Positive feedback from 3+ users
+**Data:**
+- 100 client profiles loaded from CSV successfully
+- Successfully scrape 4 sources daily (100% uptime for 1 week)
+- Generate 5-10+ real alerts in first week
+- Zero false negatives (don't miss any publications)
+- Email delivery success rate >95%
 
-**Business:**
-- Validate: "Would you pay for this?"
-- Target: 2-3 users willing to pay $200-500/month
+**Alert Quality:**
+- >70% of alerts are HIGH or MEDIUM impact
+- <30% false positives (alerts not actually relevant)
+- AI reasoning is understandable and accurate
+
+**Validation:**
+- Run for 1-2 weeks with real data
+- Share alerts with 1-2 tax professionals
+- Validate: "Is this alert relevant? Would you act on it?"
+- Target: >70% of alerts are deemed actionable
+- Collect feedback on false positives
 
 ---
 
 ## Open Questions / Decisions Needed
 
-- [ ] Which LLM? Claude vs GPT-4? (Cost vs quality)
-- [ ] Email provider? Resend vs SendGrid?
-- [ ] How to handle ambiguous matches (MAYBE impact)?
-- [ ] Scraping legal/TOS concerns for government sites?
-- [ ] Pricing model thinking: per-user? per-client? flat?
-- [ ] Multi-state matching complexity - prioritize by state nexus?
+- [ ] Which LLM? Claude vs GPT-4? (Cost vs quality) → **Leaning Claude (better reasoning)**
+- [ ] Email provider? Resend vs SendGrid? → **Resend (simpler API)**
+- [ ] How to handle ambiguous matches (MAYBE impact)? → **Show to user with explanation**
+- [ ] Scraping legal/TOS concerns for government sites? → **Check robots.txt, respectful rate limits**
+- [ ] Pricing model thinking: per-user? per-client? flat? → **Post-MVP decision**
+- [ ] Multi-state matching complexity - prioritize by state nexus? → **Filter by nexus first**
+- [ ] Auth: FastAPI-Users vs simple JWT? → **Skip for MVP (no user management)**
+- [ ] Task queue: APScheduler vs Celery? → **APScheduler for MVP (simpler), Celery if scale**
+- [ ] Frontend: Build or skip? → **Skip or minimal (email alerts are primary MVP output)**
 
 ---
 
@@ -298,44 +568,131 @@ Output JSON format:
 
 ---
 
-## Key Files to Build
+## Project Structure
 
 ```
-src/
-├── app/
-│   ├── login/
-│   ├── dashboard/
-│   ├── clients/
-│   │   ├── new/
-│   │   ├── [id]/edit/
-│   └── alerts/
-├── components/
-│   ├── ClientForm.tsx
-│   ├── AlertCard.tsx
-│   └── DashboardStats.tsx
-├── lib/
-│   ├── scrapers/
-│   │   ├── ca-ftb-newsroom.ts
-│   │   ├── tx-comptroller-publications.ts
-│   │   ├── tx-comptroller-taxes.ts
-│   │   └── fl-dor-tips.ts
-│   └── ai/
-│       ├── claude.ts
-│       └── matcher.ts
-└── cron/
-    └── daily-monitor.ts
+ReguLens/
+├── backend/                          # FastAPI application
+│   ├── app/
+│   │   ├── main.py                   # FastAPI app entry point
+│   │   ├── config.py                 # Settings (env vars, secrets)
+│   │   ├── database.py               # Database connection
+│   │   ├── models/
+│   │   │   ├── client.py             # Client SQLAlchemy model
+│   │   │   ├── publication.py        # Publication model
+│   │   │   ├── alert.py              # Alert model
+│   │   │   └── user.py               # User model (auth)
+│   │   ├── schemas/
+│   │   │   ├── client.py             # Pydantic schemas for validation
+│   │   │   ├── publication.py
+│   │   │   └── alert.py
+│   │   ├── api/
+│   │   │   ├── auth.py               # Auth endpoints
+│   │   │   ├── clients.py            # Client CRUD endpoints
+│   │   │   ├── publications.py       # Publication endpoints
+│   │   │   └── alerts.py             # Alert endpoints
+│   │   ├── scrapers/
+│   │   │   ├── base.py               # Base scraper class
+│   │   │   ├── ca_ftb_newsroom.py    # CA FTB scraper
+│   │   │   ├── tx_comptroller_pubs.py
+│   │   │   ├── tx_comptroller_tax.py
+│   │   │   └── fl_dor_tips.py
+│   │   ├── ai/
+│   │   │   ├── matcher.py            # AI matching logic (Claude)
+│   │   │   └── summarizer.py         # Summarization
+│   │   ├── jobs/
+│   │   │   ├── scheduler.py          # APScheduler setup
+│   │   │   ├── scrape_job.py         # Daily scraping job (8 AM)
+│   │   │   └── process_job.py        # AI processing + email alerts
+│   │   └── utils/
+│   │       ├── email.py              # Email sending (Resend/SendGrid)
+│   │       └── formatting.py         # Format email templates
+│   ├── alembic/                      # Database migrations
+│   │   └── versions/
+│   ├── tests/
+│   └── requirements.txt
+│
+├── frontend/                         # Simple dashboard (optional for MVP)
+│   ├── app/
+│   │   ├── page.tsx                  # Main dashboard (alerts feed)
+│   │   ├── alerts/
+│   │   │   └── [id]/page.tsx         # Alert detail view
+│   │   └── publications/
+│   │       └── page.tsx              # Recent publications list
+│   ├── components/
+│   │   ├── AlertCard.tsx             # Alert summary card
+│   │   ├── DashboardStats.tsx        # Stats (clients, alerts, publications)
+│   │   └── PublicationList.tsx       # Publication feed
+│   ├── lib/
+│   │   └── api.ts                    # API client (calls FastAPI)
+│   └── package.json
+│
+│   # Note: Frontend is OPTIONAL for MVP
+│   # Can skip and rely on email alerts only
+│
+├── scripts/
+│   ├── transform_client_profiles.py  # CSV transformation (existing)
+│   └── import_clients.py             # Import CSV to database
+│
+├── data/
+│   └── sample/
+│       ├── client_profiles.csv
+│       └── client_profiles_mvp.csv
+│
+├── docs/
+├── .env.example                      # Environment variables template
+├── .env                              # Actual config (not committed)
+├── pyproject.toml                    # Python dependencies (uv/poetry)
+└── README.md
+
+# .env.example contents:
+# DATABASE_URL=postgresql://user:pass@localhost:5432/regulens
+# ALERT_RECIPIENT_EMAIL=your-email@example.com
+# ALERT_RECIPIENT_NAME=Tax Professional
+# ANTHROPIC_API_KEY=sk-ant-...
+# RESEND_API_KEY=re_...
 ```
 
 ---
 
-## Notes
+## Implementation Notes
 
-- Focus: Ship fast, learn fast
-- Don't over-engineer
-- Manual fallbacks OK for MVP (e.g., manual scraper runs if cron fails)
+### Architecture Decisions
+
+**Why FastAPI over Supabase:**
+- ReguLens is a **data processing pipeline**, not a CRUD app
+- Core features (scraping, AI processing, alerts) are **background jobs**
+- Single deployment: scrapers + API + database in one service
+- Direct database access (no API overhead for batch operations)
+- Better for concurrent AI processing with asyncio
+- Full control over business logic
+
+**Technology Choices:**
+- **FastAPI:** Async support, auto-generated docs, modern Python
+- **SQLAlchemy:** Mature ORM, great for complex queries
+- **APScheduler:** Simple cron jobs, no Redis needed for MVP
+- **Playwright:** Handles JavaScript-heavy sites if needed
+- **Railway/Render:** Simple deployment, PostgreSQL included
+
+### Development Principles
+
+- **Focus: Ship fast, learn fast**
+- **Core MVP:** Automated scraping + AI matching + email alerts (that's it!)
+- Don't over-engineer - no client UI, no user management, no auth
+- Manual fallbacks OK for MVP (manual scraper trigger endpoint)
 - AI doesn't have to be perfect - 75% accuracy + human review is fine
-- Get it in users' hands ASAP
+- Test with real government sources early (Week 2)
+- Email alerts are the primary MVP deliverable (not dashboard)
+- Use existing CSV data (100 clients) - no data entry needed
+- Can add UI/auth/multi-user in V2 after validating core value
+
+### Scaling Considerations (Post-MVP)
+
+- Switch to Celery + Redis if background jobs become complex
+- Add caching (Redis) for frequently accessed data
+- Consider separating scraper service if it becomes resource-heavy
+- Add monitoring (Sentry, DataDog) for production
 
 ---
 
-**Next Step:** Start Week 1 build → Set up infrastructure
+**Next Step:** Start Week 1 build → Set up FastAPI + Database infrastructure

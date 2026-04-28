@@ -63,19 +63,34 @@
 
 ---
 
-## MVP STRATEGY: Focus on Working Sources
+## MVP STRATEGY: FastAPI + 4 Working Sources
 
-**Strategy:** Focus on 4 working sources (CA FTB Newsroom + TX x2 + FL) for reliable monitoring.
+**Architecture Decision:** FastAPI backend (not Supabase)
+- ReguLens is a **data processing pipeline** (scraping + AI + alerts)
+- Not a CRUD app → Supabase doesn't fit well
+- FastAPI allows scrapers + API + database in one service
+- Better for background jobs, AI processing, batch operations
+- No vendor lock-in, full control over business logic
+
+**Source Strategy:** Focus on 4 working sources (CA FTB Newsroom + TX x2 + FL)
 
 **Pros:**
 - Can ship faster with reliable monitoring
 - CA, TX, and FL cover major markets
 - Proves the concept with real multi-state data
 - CA FTB Newsroom provides critical CA coverage
+- All scrapers in Python (unified codebase)
+
+**MVP Simplifications:**
+- No client management UI (use CSV data)
+- No user management (single hardcoded alert recipient)
+- No authentication (add in V2)
+- Email alerts are primary deliverable (dashboard optional)
 
 **Remaining Gaps:**
 - Other CA sources (CDTFA, Legislature) still difficult - post-MVP
 - May need different strategy for comprehensive CA coverage later
+- Multi-user support deferred to V2
 
 ---
 
@@ -127,30 +142,39 @@
 
 ## Client Profile Model (Simplified)
 
-### Minimum Attributes for MVP
+### Client Profile Model (MVP - CSV Based)
+
+**Data Source:** Pre-existing `client_profiles_mvp.csv` (100 clients)
+
+**SQLAlchemy Model Attributes:**
 
 **Identity:**
-- Client name (internal use only)
-- Entity type: C-Corp | S-Corp | LLC | Partnership | Sole Proprietor
+- id: UUID (generated)
+- name: Client code (e.g., TECH_001, MFG_002)
+- entity_type: C-Corp | S-Corp | LLC | Partnership | Sole Proprietor
 
 **Geographic:**
-- Has California nexus? (Y/N)
-- Has Texas nexus? (Y/N)
-- Has Florida nexus? (Y/N)
-- Other states? (for future expansion)
+- ca_nexus: Boolean (California nexus)
+- tx_nexus: Boolean (Texas nexus)
+- fl_nexus: Boolean (Florida nexus)
+
+**Industry:**
+- industry: Text (e.g., "Software Publishing")
+- industry_naics: Text (e.g., "511210")
 
 **Financial:**
-- Revenue range: <$1M | $1-10M | $10-50M | $50M+
+- revenue_range: <1M | 1-10M | 10-50M | 50M+
 - Why: Threshold tests for applicability
 
 **Tax Activity:**
-- Tax credits used: R&D | Film | Other
+- tax_credits_used: Array (R&D | Film | Other)
 - Why: Alert about credit changes
 
-**Optional (nice to have):**
-- Industry (NAICS code or dropdown)
-- Number of employees
-- Key business activities (SaaS, manufacturing, etc.)
+**Timestamps:**
+- created_at, updated_at
+
+**Note:** No user_id in MVP - all clients managed by single hardcoded recipient
+**Note:** No email field - clients don't receive alerts (tax professional does)
 
 ### Example Client Profiles
 
@@ -241,27 +265,39 @@
 ## Technical Research
 
 ### Web Scraping Considerations
-- CA government sites: Generally accessible (no login walls)
-- RSS feeds: Some available (FTB newsroom likely has RSS)
-- PDF bulletins: Need OCR/text extraction
+- CA/TX/FL government sites: Generally accessible (no login walls)
+- Tools: Playwright (JS-heavy sites) + BeautifulSoup4 (HTML parsing)
 - Rate limiting: Be respectful, cache appropriately
-- Legal/TOS: Review each site's terms
+- Legal/TOS: Review each site's robots.txt
+- Scheduling: APScheduler for daily cron jobs (8 AM)
+- Error handling: Retry logic, alert if scraper fails
 
 ### AI/LLM Approach
+- **Chosen:** Claude (Anthropic) - better reasoning for tax analysis
+- **SDK:** Anthropic Python SDK (async support)
 - **Summarization:** Extract key points from dense legal text
 - **Classification:** Tax topic categorization
 - **Matching:** Client attributes → regulation applicability
 - **Reasoning:** Explain WHY a client is affected
 
 **Prompt engineering critical:**
-- Domain-specific instructions (tax expertise)
+- Domain-specific instructions (act as tax expert)
 - Structured output (JSON for matching)
-- Examples/few-shot learning
+- Include client context (entity type, nexus, revenue, credits)
+- Request explanation + action items
 
-**Model options:**
-- Claude (Anthropic): Good reasoning, long context
-- GPT-4: Strong performance, widely used
-- Cost: ~$0.01-0.03 per analysis (acceptable for MVP)
+**Cost estimate:**
+- ~$0.01-0.03 per client analysis
+- 100 clients × 5 publications/week = 500 analyses
+- ~$5-15/week API costs (acceptable for MVP)
+
+### FastAPI Architecture
+- **Framework:** FastAPI (async, auto-docs, type safety)
+- **Database:** PostgreSQL (Railway) + SQLAlchemy ORM
+- **Migrations:** Alembic
+- **Background Jobs:** APScheduler (no Redis needed for MVP)
+- **Email:** Resend (simpler API than SendGrid)
+- **Deployment:** Railway (single service, includes PostgreSQL)
 
 ---
 
@@ -289,12 +325,14 @@
 
 ## MVP Assumptions to Validate
 
-- [ ] Tax pros will trust AI-generated analysis (with audit trail)
+- [ ] Tax pros will trust AI-generated analysis (with audit trail + reasoning)
 - [ ] CA/TX/FL coverage is sufficient for initial value
-- [ ] Email alerts preferred over dashboard-only
-- [ ] Client profile data entry not too burdensome (especially multi-state nexus)
-- [ ] $200-500/month pricing is acceptable
+- [ ] Email alerts are valuable enough (without dashboard)
+- [ ] CSV-based client data is acceptable (no manual data entry UI needed)
 - [ ] Daily monitoring frequency is sufficient (vs real-time)
+- [ ] Single recipient model works for testing (multi-user not needed yet)
+- [ ] >70% alert precision is acceptable (with human review)
+- [ ] FastAPI backend can handle daily scraping + AI processing reliably
 
 ---
 
@@ -324,25 +362,48 @@
 
 ## Next Steps
 
-**Week 1 (Planning):**
+**Week 1: Core Infrastructure + Database**
 - [x] Define MVP scope
-- [ ] Set up project infrastructure
-- [ ] Manual scraping test (visit 5 CA sources, extract sample publications)
+- [ ] Set up FastAPI project structure
+- [ ] Database setup: PostgreSQL + SQLAlchemy models
+  - [ ] Client model (with ca/tx/fl nexus fields)
+  - [ ] Publication model
+  - [ ] Alert model (links publication → client)
+- [ ] Alembic migrations setup
+- [ ] CSV import script to load 100 client profiles
+- [ ] Basic API endpoints (read-only: clients, publications, alerts)
+- [ ] Deploy skeleton to Railway (backend + database)
 
-**Week 2 (Build):**
-- [ ] Build scrapers for 4 sources (CA FTB Newsroom, TX x2, FL DOR)
-- [ ] Test AI analysis on 10 real publications
-- [ ] Create client profile schema with multi-state nexus
+**Week 2: Scraping + Storage**
+- [ ] Build scrapers for 4 sources (Python + Playwright/BeautifulSoup)
+  - [ ] CA FTB Newsroom scraper
+  - [ ] TX Comptroller Publications scraper
+  - [ ] TX Comptroller Taxes scraper
+  - [ ] FL DOR TIPs scraper
+- [ ] APScheduler setup for daily cron jobs (8 AM)
+- [ ] Store scraped publications in database
+- [ ] Manual scraper trigger endpoint for testing
+- [ ] Test: Run all scrapers, verify data quality
 
-**Week 3 (Polish):**
-- [ ] Matching engine + alerts
-- [ ] Dashboard + basic UX
-- [ ] End-to-end testing
+**Week 3: AI Matching + Alerts**
+- [ ] Claude API integration (Anthropic Python SDK)
+- [ ] AI matching function (match publication to client)
+- [ ] Background job: Process new publications through AI
+  - [ ] Filter clients by state nexus first
+  - [ ] Create Alert records for matches
+- [ ] Email alert system (Resend/SendGrid)
+  - [ ] Email template: publication + affected clients + actions
+  - [ ] Send to configured recipient email
+- [ ] Test end-to-end: Scrape → AI → Email
 
-**Week 4 (Launch):**
-- [ ] Beta with 3-5 users
-- [ ] Collect feedback
-- [ ] Iterate
+**Week 4: Polish + Validation**
+- [ ] Error handling + logging for scrapers and AI
+- [ ] Retry logic for failures
+- [ ] Audit trail (track when publications detected/processed)
+- [ ] Test with full 100 client dataset
+- [ ] Production deployment to Railway
+- [ ] Run for 1 week, monitor daily
+- [ ] Share alerts with 1-2 tax professionals for feedback
 
 ---
 
@@ -365,13 +426,29 @@
 - Decided: Multi-state MVP (CA/TX/FL) with 4 working sources
 - Decided: 2-4 week sprint timeline
 - Decided: Focus on Tax Partner + Compliance Manager personas
-- Decided: Supabase + Next.js stack
+- Initial: Considered Supabase + Next.js stack
 - Open: Which LLM (Claude vs GPT)?
 - Open: Email provider (Resend vs SendGrid)?
 
 **2026-04-24:**
 - Added: CA FTB Newsroom as 4th working source
 - Updated: MVP now covers CA/TX/FL (expanded from TX/FL only)
+
+**2026-04-28:**
+- Pivoted: FastAPI backend instead of Supabase
+- Rationale: ReguLens is data pipeline (scraping + AI), not CRUD app
+- FastAPI better for background jobs, AI processing, unified Python codebase
+- Decided: Claude API (better reasoning for tax analysis)
+- Decided: Resend for email (simpler than SendGrid)
+
+**2026-04-29:**
+- Simplified: No client management UI in MVP (use CSV data)
+- Simplified: No user management (single hardcoded alert recipient)
+- Simplified: No auth system (defer to V2)
+- Focus: Core automation (scrape → AI → email alerts)
+- Data: Use existing 100 client profiles from CSV
+- Alert workflow: All alerts go to one configured email address
+- Validation goal: Prove automation works, then add product wrapper in V2
 
 ---
 
