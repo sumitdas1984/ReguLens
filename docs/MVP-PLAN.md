@@ -82,32 +82,41 @@ Tax professionals face a **Manual Discovery Gap**:
    - Include: summary, affected clients, action items
    - Daily digest option (not real-time spam)
 
-5. **Simple Dashboard**
-   - Login (email/password)
-   - View: recent alerts, client count, sources monitored
-   - Mark alerts as "reviewed"
-   - Basic audit trail (when detected, when alerted)
+5. **Minimal Dashboard (Read-Only)**
+   - Single page: recent alerts feed (last 30 days)
+   - No authentication (direct access for MVP)
+   - Display: publication details, affected clients, impact levels
+   - Mark alerts as "reviewed" via button or magic link
+   - Basic stats: total alerts, clients, publications scraped
+   - Simple HTML/CSS (FastAPI + Jinja2 templates)
 
 ### What's OUT (Post-MVP)
 
 - ❌ Client profile UI (create/edit/delete clients) - using CSV data only
+- ❌ User authentication/login (dashboard is publicly accessible for MVP)
+- ❌ User management (multi-user support) - single user MVP
 - ❌ Additional states beyond CA/TX/FL
-- ❌ Mobile app - email + web is enough
+- ❌ Advanced dashboard features (filters, search, charts)
+- ❌ Mobile app - simple responsive web is enough
 - ❌ Team collaboration features
-- ❌ Advanced search/filters
 - ❌ Integrations with tax software
 - ❌ API access for external tools
 - ❌ White-label/multi-tenant
-- ❌ User management (multi-user support) - single user MVP
 
 ---
 
 ## Technical Stack
 
-### Frontend
-- **Framework:** Next.js + React + TypeScript
-- **UI:** Tailwind CSS + shadcn/ui
-- **Hosting:** Vercel (or Railway static hosting)
+### Frontend (Minimal Dashboard)
+- **Framework:** FastAPI + Jinja2 templates (server-side rendering)
+- **Architecture:** No separate frontend app - HTML rendered by FastAPI backend
+- **Templates:** Jinja2 (like Django templates) - `templates/` folder
+- **Static Assets:** CSS, JS, images - `static/` folder
+- **UI:** Simple HTML/CSS (Tailwind CSS CDN or plain CSS)
+- **Hosting:** Same service as backend (Railway - single deployment)
+- **No JavaScript framework needed** (keep it simple)
+
+**Note:** This is NOT a React/Next.js SPA. FastAPI renders HTML server-side and returns complete pages to the browser. Think of it like traditional PHP or Django, not modern SPA architecture.
 
 ### Backend
 - **Framework:** FastAPI + Python 3.11+
@@ -412,11 +421,12 @@ Output ONLY valid JSON in this format:
 ### 4. User Flows
 
 **Initial Setup (One-Time):**
-1. Deploy backend with database to Railway
+1. Deploy backend + dashboard to Railway
 2. Configure alert recipient email in `.env`
 3. Run CSV import script to load 100 sample clients
 4. Verify scrapers are running (manual trigger or check logs)
-5. Monitoring starts automatically (daily cron at 8 AM)
+5. Access dashboard at `https://your-app.railway.app/`
+6. Monitoring starts automatically (daily cron at 8 AM)
 
 **Daily Automated Flow:**
 1. **8:00 AM:** Scrapers run automatically (4 sources)
@@ -426,15 +436,23 @@ Output ONLY valid JSON in this format:
 3. **8:10 AM:** Email sent if any alerts generated
    - One email with all affected clients
    - Sent to configured recipient
+4. **Anytime:** View alerts in dashboard at `/`
 
-**User Interaction (Email-Driven):**
-1. Receive email: "ReguLens Alert: TX Franchise Tax Update affects 3 clients"
-2. Read summary and affected client list in email
-3. Click "View Publication" to see source
-4. Take action with clients (outside ReguLens)
-5. Optional: Mark as reviewed in dashboard (if built)
+**User Interaction:**
+1. **Via Email:**
+   - Receive email: "ReguLens Alert: TX Franchise Tax Update affects 3 clients"
+   - Read summary and affected client list
+   - Click "View in Dashboard" link → opens dashboard
+   - Click "Mark as Reviewed" magic link → marks alert reviewed
 
-**Note:** No user signup/login in MVP - all alerts go to one configured email
+2. **Via Dashboard:**
+   - Visit `https://your-app.railway.app/`
+   - See feed of all recent alerts (last 30 days)
+   - Click alert to see full details
+   - Click "Mark as Reviewed" button
+   - See which alerts are pending vs reviewed
+
+**Note:** No user signup/login - dashboard is publicly accessible for MVP
 
 ---
 
@@ -473,7 +491,7 @@ Output ONLY valid JSON in this format:
 - [ ] Test scraping locally + manual run endpoint
 - [ ] Store scraped publications in database
 
-### Week 3: AI Matching + Alerts
+### Week 3: AI Matching + Alerts + Dashboard
 - [ ] Claude API integration (Anthropic SDK)
   - [ ] Environment variable for API key
   - [ ] Test basic Claude API call
@@ -490,10 +508,16 @@ Output ONLY valid JSON in this format:
 - [ ] Email alert system
   - [ ] Resend or SendGrid integration
   - [ ] Email template builder: format publication + affected clients
+  - [ ] Include "View in Dashboard" and "Mark as Reviewed" magic links
   - [ ] Send one email per publication (with all affected clients)
   - [ ] Mark alerts as email_sent=True
-- [ ] Test end-to-end: Scrape → AI → Store → Email
-- [ ] Optional: Simple dashboard to view alert history
+- [ ] Minimal dashboard (FastAPI + Jinja2)
+  - [ ] Setup Jinja2 templates
+  - [ ] Homepage: `/` - alert feed (last 30 days, newest first)
+  - [ ] Alert detail: `/alerts/{id}` - full publication + clients
+  - [ ] Magic link endpoint: `/alerts/{id}/reviewed` - mark as reviewed
+  - [ ] Basic CSS styling (clean, simple, mobile-friendly)
+- [ ] Test end-to-end: Scrape → AI → Store → Email → Dashboard
 
 ### Week 4: Polish, Test, Deploy
 - [ ] Error handling + logging (for scrapers and AI failures)
@@ -501,12 +525,21 @@ Output ONLY valid JSON in this format:
 - [ ] Audit trail: track when publications detected/processed
 - [ ] Test end-to-end with real client data (100 profiles from CSV)
 - [ ] Manual scraper trigger endpoint (for testing/debugging)
-- [ ] Dashboard improvements: show scraper status, recent publications
-- [ ] Alert history view (past 30 days)
-- [ ] Production deployment to Railway (backend + database)
-- [ ] Frontend deployment (simple dashboard) or skip if time-constrained
-- [ ] Run for 1 week, monitor for issues
-- [ ] Share with 1-2 early users + collect feedback
+- [ ] Dashboard polish:
+  - [ ] Add stats: total alerts, pending vs reviewed, sources monitored
+  - [ ] Show last scraper run time + status
+  - [ ] Add simple filters (show pending only, show by impact level)
+  - [ ] Mobile-responsive styling
+- [ ] Production deployment to Railway
+  - [ ] Backend + database + dashboard (single service)
+  - [ ] Configure environment variables
+  - [ ] Test scraper cron jobs work on Railway
+- [ ] Run for 1 week, monitor daily:
+  - [ ] Check email alerts arrive
+  - [ ] Check dashboard shows alerts correctly
+  - [ ] Monitor scraper logs for failures
+- [ ] Share dashboard URL + email alerts with 1-2 tax professionals
+- [ ] Collect feedback on alert quality and UI
 
 ---
 
@@ -547,9 +580,10 @@ Output ONLY valid JSON in this format:
 - [ ] Scraping legal/TOS concerns for government sites? → **Check robots.txt, respectful rate limits**
 - [ ] Pricing model thinking: per-user? per-client? flat? → **Post-MVP decision**
 - [ ] Multi-state matching complexity - prioritize by state nexus? → **Filter by nexus first**
-- [ ] Auth: FastAPI-Users vs simple JWT? → **Skip for MVP (no user management)**
+- [x] Frontend: Build or skip? → **Minimal dashboard (FastAPI + Jinja2, read-only)**
+- [x] Auth: FastAPI-Users vs simple JWT? → **Skip for MVP (dashboard publicly accessible)**
 - [ ] Task queue: APScheduler vs Celery? → **APScheduler for MVP (simpler), Celery if scale**
-- [ ] Frontend: Build or skip? → **Skip or minimal (email alerts are primary MVP output)**
+- [ ] CSS framework: Tailwind vs plain CSS? → **Plain CSS or Tailwind CDN (no build step)**
 
 ---
 
@@ -572,11 +606,12 @@ Output ONLY valid JSON in this format:
 
 ```
 ReguLens/
-├── backend/                          # FastAPI application
+├── backend/                          # FastAPI application (backend + frontend)
 │   ├── app/
 │   │   ├── main.py                   # FastAPI app entry point
 │   │   ├── config.py                 # Settings (env vars, secrets)
 │   │   ├── database.py               # Database connection
+│   │   ├── dependencies.py           # Jinja2 templates setup
 │   │   ├── models/
 │   │   │   ├── client.py             # Client SQLAlchemy model
 │   │   │   ├── publication.py        # Publication model
@@ -587,10 +622,12 @@ ReguLens/
 │   │   │   ├── publication.py
 │   │   │   └── alert.py
 │   │   ├── api/
-│   │   │   ├── auth.py               # Auth endpoints
-│   │   │   ├── clients.py            # Client CRUD endpoints
-│   │   │   ├── publications.py       # Publication endpoints
-│   │   │   └── alerts.py             # Alert endpoints
+│   │   │   ├── clients.py            # Client API endpoints (read-only)
+│   │   │   ├── publications.py       # Publication API endpoints
+│   │   │   └── alerts.py             # Alert API endpoints
+│   │   ├── routes/
+│   │   │   ├── dashboard.py          # Dashboard HTML routes (/)
+│   │   │   └── actions.py            # Magic link actions (/alerts/{id}/reviewed)
 │   │   ├── scrapers/
 │   │   │   ├── base.py               # Base scraper class
 │   │   │   ├── ca_ftb_newsroom.py    # CA FTB scraper
@@ -612,32 +649,26 @@ ReguLens/
 │   ├── tests/
 │   └── requirements.txt
 │
-├── frontend/                         # Simple dashboard (optional for MVP)
-│   ├── app/
-│   │   ├── page.tsx                  # Main dashboard (alerts feed)
-│   │   ├── alerts/
-│   │   │   └── [id]/page.tsx         # Alert detail view
-│   │   └── publications/
-│   │       └── page.tsx              # Recent publications list
-│   ├── components/
-│   │   ├── AlertCard.tsx             # Alert summary card
-│   │   ├── DashboardStats.tsx        # Stats (clients, alerts, publications)
-│   │   └── PublicationList.tsx       # Publication feed
-│   ├── lib/
-│   │   └── api.ts                    # API client (calls FastAPI)
-│   └── package.json
-│
-│   # Note: Frontend is OPTIONAL for MVP
-│   # Can skip and rely on email alerts only
+│   ├── templates/                    # HTML templates (the "frontend")
+│   │   ├── base.html                 # Base template with common layout/navigation
+│   │   ├── index.html                # Homepage: alerts feed (extends base.html)
+│   │   ├── alert_detail.html         # Alert detail page (extends base.html)
+│   │   └── reviewed.html             # "Marked as reviewed" confirmation page
+│   │
+│   ├── static/                       # Static files (CSS, JS, images)
+│   │   ├── css/
+│   │   │   └── style.css             # Dashboard styles
+│   │   ├── js/
+│   │   │   └── main.js               # Optional: minimal JS for interactivity
+│   │   └── favicon.ico               # Site icon
+│   │
 │
 ├── scripts/
-│   ├── transform_client_profiles.py  # CSV transformation (existing)
 │   └── import_clients.py             # Import CSV to database
 │
 ├── data/
 │   └── sample/
-│       ├── client_profiles.csv
-│       └── client_profiles_mvp.csv
+│       └── client_profiles_mvp.csv   # 100 MVP-ready client profiles
 │
 ├── docs/
 ├── .env.example                      # Environment variables template
