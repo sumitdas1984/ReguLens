@@ -2,7 +2,8 @@
 
 **Timeline:** 2-4 weeks  
 **Status:** Planning → Build  
-**Last Updated:** 2026-04-22
+**Last Updated:** 2026-04-29  
+**Environment:** Local development only (cloud deployment post-MVP)
 
 ---
 
@@ -92,8 +93,10 @@ Tax professionals face a **Manual Discovery Gap**:
 
 ### What's OUT (Post-MVP)
 
+- ❌ Cloud deployment (Railway/Render/AWS) - MVP runs locally only
+- ❌ Production infrastructure considerations
 - ❌ Client profile UI (create/edit/delete clients) - using CSV data only
-- ❌ User authentication/login (dashboard is publicly accessible for MVP)
+- ❌ User authentication/login (dashboard is accessible locally for MVP)
 - ❌ User management (multi-user support) - single user MVP
 - ❌ Additional states beyond CA/TX/FL
 - ❌ Advanced dashboard features (filters, search, charts)
@@ -113,7 +116,7 @@ Tax professionals face a **Manual Discovery Gap**:
 - **Templates:** Jinja2 (like Django templates) - `templates/` folder
 - **Static Assets:** CSS, JS, images - `static/` folder
 - **UI:** Simple HTML/CSS (Tailwind CSS CDN or plain CSS)
-- **Hosting:** Same service as backend (Railway - single deployment)
+- **Local Development:** Runs on same server as backend (localhost)
 - **No JavaScript framework needed** (keep it simple)
 
 **Note:** This is NOT a React/Next.js SPA. FastAPI renders HTML server-side and returns complete pages to the browser. Think of it like traditional PHP or Django, not modern SPA architecture.
@@ -132,10 +135,10 @@ Tax professionals face a **Manual Discovery Gap**:
 - **Email:** Resend or SendGrid Python SDK
 - **Async Tasks:** FastAPI BackgroundTasks + asyncio
 
-### Storage & Deployment
-- **File Storage:** Local filesystem or S3-compatible storage
-- **Deployment:** Railway or Render (single service)
-- **Database Hosting:** Railway PostgreSQL or Render PostgreSQL
+### Storage & Local Development
+- **File Storage:** Local filesystem
+- **Database:** Local PostgreSQL instance
+- **Development Environment:** Run locally (no cloud deployment for MVP)
 
 ---
 
@@ -421,12 +424,14 @@ Output ONLY valid JSON in this format:
 ### 4. User Flows
 
 **Initial Setup (One-Time):**
-1. Deploy backend + dashboard to Railway
+1. Set up local PostgreSQL database
 2. Configure alert recipient email in `.env`
-3. Run CSV import script to load 100 sample clients
-4. Verify scrapers are running (manual trigger or check logs)
-5. Access dashboard at `https://your-app.railway.app/`
-6. Monitoring starts automatically (daily cron at 8 AM)
+3. Run database migrations (Alembic)
+4. Run CSV import script to load 100 sample clients
+5. Start FastAPI server locally
+6. Access dashboard at `http://localhost:8000/`
+7. Trigger scrapers manually for testing
+8. Configure scheduler for daily automated runs
 
 **Daily Automated Flow:**
 1. **8:00 AM:** Scrapers run automatically (4 sources)
@@ -446,13 +451,13 @@ Output ONLY valid JSON in this format:
    - Click "Mark as Reviewed" magic link → marks alert reviewed
 
 2. **Via Dashboard:**
-   - Visit `https://your-app.railway.app/`
+   - Visit `http://localhost:8000/` (or configured local URL)
    - See feed of all recent alerts (last 30 days)
    - Click alert to see full details
    - Click "Mark as Reviewed" button
    - See which alerts are pending vs reviewed
 
-**Note:** No user signup/login - dashboard is publicly accessible for MVP
+**Note:** No user signup/login - dashboard is accessible locally for MVP
 
 ---
 
@@ -461,15 +466,16 @@ Output ONLY valid JSON in this format:
 ### Week 1: Core Infrastructure + Database
 - [ ] Set up FastAPI project structure (`backend/` directory)
 - [ ] Environment configuration (`.env` file)
-  - [ ] Database connection string
+  - [ ] Local database connection string
   - [ ] Alert recipient email
   - [ ] API keys placeholders
-- [ ] Database setup: PostgreSQL + SQLAlchemy models
+- [ ] Local PostgreSQL setup and database creation
+- [ ] Database setup: SQLAlchemy models
   - [ ] Client model (with nexus, entity type, revenue, etc.)
   - [ ] Publication model (title, source, state, URL, content)
   - [ ] Alert model (links publication → client, stores AI results)
 - [ ] Alembic migrations setup (`alembic init`)
-- [ ] Create initial migration, run on Railway PostgreSQL
+- [ ] Create initial migration, run on local PostgreSQL
 - [ ] CSV import script: `scripts/import_clients.py`
   - [ ] Read `client_profiles_mvp.csv`
   - [ ] Transform and insert into database
@@ -478,7 +484,7 @@ Output ONLY valid JSON in this format:
   - [ ] GET /clients (list all)
   - [ ] GET /publications (list recent)
   - [ ] GET /alerts (list recent)
-- [ ] Deploy skeleton to Railway (backend + database)
+- [ ] Test FastAPI server runs locally at `http://localhost:8000`
 
 ### Week 2: Scraping + Storage
 - [ ] Build scrapers for 4 sources (CA FTB, TX Comptroller x2, FL DOR)
@@ -519,7 +525,7 @@ Output ONLY valid JSON in this format:
   - [ ] Basic CSS styling (clean, simple, mobile-friendly)
 - [ ] Test end-to-end: Scrape → AI → Store → Email → Dashboard
 
-### Week 4: Polish, Test, Deploy
+### Week 4: Polish, Test, Validate
 - [ ] Error handling + logging (for scrapers and AI failures)
 - [ ] Retry logic for failed scrapes/AI calls
 - [ ] Audit trail: track when publications detected/processed
@@ -530,16 +536,16 @@ Output ONLY valid JSON in this format:
   - [ ] Show last scraper run time + status
   - [ ] Add simple filters (show pending only, show by impact level)
   - [ ] Mobile-responsive styling
-- [ ] Production deployment to Railway
-  - [ ] Backend + database + dashboard (single service)
-  - [ ] Configure environment variables
-  - [ ] Test scraper cron jobs work on Railway
-- [ ] Run for 1 week, monitor daily:
+- [ ] Run locally for 1 week, monitor daily:
   - [ ] Check email alerts arrive
   - [ ] Check dashboard shows alerts correctly
   - [ ] Monitor scraper logs for failures
-- [ ] Share dashboard URL + email alerts with 1-2 tax professionals
+  - [ ] Verify scheduled jobs run as expected
+- [ ] Validate with 1-2 tax professionals (share email alerts)
 - [ ] Collect feedback on alert quality and UI
+- [ ] Document any issues or improvements for post-MVP
+
+**Note:** Cloud deployment (Railway/Render/AWS) will be considered after MVP validation
 
 ---
 
@@ -589,11 +595,19 @@ Output ONLY valid JSON in this format:
 
 ## Post-MVP Roadmap (Future)
 
+**Deployment Phase (After MVP Validation):**
+- Evaluate cloud deployment options (Railway, Render, or AWS)
+- Set up production environment and infrastructure
+- Configure production database hosting
+- Implement monitoring and logging for production
+- Deploy to chosen cloud platform
+
 **V2 (Month 2-3):**
 - Add more CA sources (CDTFA, Legislature)
 - Add NY, IL, and other high-priority states
 - Mobile-responsive improvements
 - Advanced filters
+- User authentication and multi-user support
 
 **V3 (Month 4-6):**
 - Mobile app (iOS/Android)
@@ -676,12 +690,13 @@ ReguLens/
 ├── pyproject.toml                    # Python dependencies (uv/poetry)
 └── README.md
 
-# .env.example contents:
+# .env.example contents (for local development):
 # DATABASE_URL=postgresql://user:pass@localhost:5432/regulens
 # ALERT_RECIPIENT_EMAIL=your-email@example.com
 # ALERT_RECIPIENT_NAME=Tax Professional
 # ANTHROPIC_API_KEY=sk-ant-...
 # RESEND_API_KEY=re_...
+# Note: Cloud deployment configuration will be added post-MVP
 ```
 
 ---
@@ -703,22 +718,30 @@ ReguLens/
 - **SQLAlchemy:** Mature ORM, great for complex queries
 - **APScheduler:** Simple cron jobs, no Redis needed for MVP
 - **Playwright:** Handles JavaScript-heavy sites if needed
-- **Railway/Render:** Simple deployment, PostgreSQL included
+- **Local PostgreSQL:** Database runs locally during MVP development
 
 ### Development Principles
 
-- **Focus: Ship fast, learn fast**
+- **Focus: Build locally, validate fast, deploy later**
 - **Core MVP:** Automated scraping + AI matching + email alerts (that's it!)
+- Run everything locally - no cloud deployment until MVP is validated
 - Don't over-engineer - no client UI, no user management, no auth
 - Manual fallbacks OK for MVP (manual scraper trigger endpoint)
 - AI doesn't have to be perfect - 75% accuracy + human review is fine
 - Test with real government sources early (Week 2)
 - Email alerts are the primary MVP deliverable (not dashboard)
 - Use existing CSV data (100 clients) - no data entry needed
-- Can add UI/auth/multi-user in V2 after validating core value
+- Cloud deployment decisions (Railway/Render/AWS) come AFTER local validation
 
-### Scaling Considerations (Post-MVP)
+### Deployment & Scaling Considerations (Post-MVP)
 
+**After Local MVP Validation:**
+- Evaluate cloud platforms: Railway, Render, or AWS
+- Set up production database hosting
+- Configure environment variables for production
+- Implement SSL/HTTPS for secure access
+
+**Future Scaling:**
 - Switch to Celery + Redis if background jobs become complex
 - Add caching (Redis) for frequently accessed data
 - Consider separating scraper service if it becomes resource-heavy
