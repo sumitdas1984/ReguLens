@@ -6,6 +6,8 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from backend.app.api import clients, publications, alerts
+
 # Initialize FastAPI app
 app = FastAPI(
     title="ReguLens",
@@ -38,6 +40,12 @@ async def health_check():
         "service": "regulens-backend",
         "version": "0.1.0",
     }
+
+
+# Register API routers
+app.include_router(clients.router, prefix="/api")
+app.include_router(publications.router, prefix="/api")
+app.include_router(alerts.router, prefix="/api")
 
 
 if __name__ == "__main__":
