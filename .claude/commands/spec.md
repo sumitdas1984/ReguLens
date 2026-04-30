@@ -1,10 +1,10 @@
 ---
-description: Create a feature spec file and branch from a short idea or a detailed github issue
-argument-hint: Short feature description or a detailed github issue
+description: Create a feature spec file and branch from a short idea or a github issue link
+argument-hint: Short feature description or a github issue link
 allowed-tools: Read, Write, Glob, Bash(git switch:*)
 ---
 
-You are helping to spin up a new feature spec for this application, from a short idea or a detailed github issue provided in the user input below. Always adhere to any rules or requirements set out in any CLAUDE.md files when responding.
+You are helping to spin up a new feature spec for this application, from a short idea or a github issue link provided in the user input below. Always adhere to any rules or requirements set out in any CLAUDE.md files when responding.
 
 User input: $ARGUMENTS
 
