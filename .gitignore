@@ -28,6 +28,12 @@ secrets/
 *.sqlite
 *.sqlite3
 
+# Testing and coverage
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+
 # IDE
 .vscode/
 .idea/
