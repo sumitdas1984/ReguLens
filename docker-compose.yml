@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: regulens-db
+    environment:
+      POSTGRES_USER: regulens_user
+      POSTGRES_PASSWORD: regulens_pass
+      POSTGRES_DB: regulens
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    ports:
+      - "5432:5432"
+    volumes:
+      - regulens-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U regulens_user -d regulens"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  regulens-data:
+    name: regulens-postgres-data

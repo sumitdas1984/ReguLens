@@ -1,0 +1,56 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg
+*.egg-info
+.venv/
+venv/
+ENV/
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Data
+data/
+*.csv
+*.db
+*.sqlite
+
+# Environment
+.env
+.env.local
+*.key
+*.pem
+
+# Claude
+.claude/
+
+# Plans and Specs
+_plans/
+_specs/
+
+# Docker
+docker-compose.yml
+Dockerfile
+.dockerignore
