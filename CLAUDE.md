@@ -84,17 +84,22 @@ uv run python -m backend.app.main
 ### Testing
 
 ```bash
-# Run all tests
+# Run all tests (36 tests total)
 uv run pytest tests/ -v
 
 # Run specific test file
-uv run pytest tests/test_structure.py -v
+uv run pytest tests/test_config.py -v        # 28 config validation tests
+uv run pytest tests/test_structure.py -v     # 6 structure tests
+uv run pytest tests/test_api.py -v           # 2 API tests
 
 # Run with coverage
 uv run pytest --cov=backend --cov-report=html
 
 # Run specific test
 uv run pytest tests/test_api.py::test_root_endpoint -v
+
+# Run specific test class
+uv run pytest tests/test_config.py::TestDatabaseURLValidation -v
 ```
 
 ### Database Management
@@ -168,9 +173,18 @@ backend/app/
 ### Important Patterns
 
 1. **Configuration Management**
-   - All config in `backend/app/config.py` using Pydantic Settings
+   - All config in `backend/app/config.py` using Pydantic Settings v2
+   - Configuration validated at startup with field validators:
+     - `DATABASE_URL`: Must be valid PostgreSQL connection string
+     - `ALERT_RECIPIENT_EMAIL`: Must be valid email format (optional)
+     - `ANTHROPIC_API_KEY`: Must start with "sk-ant-" and be 50+ chars (optional)
+     - `RESEND_API_KEY`: Must start with "re_" (optional)
+     - `SCRAPE_SCHEDULE_HOUR`: Must be 0-23
+     - `SCRAPE_TIMEOUT_SECONDS`: Must be positive, max 300 seconds
+   - Invalid configuration fails at startup with helpful error messages
    - Never hardcode credentials - use environment variables
    - Access via: `from backend.app.config import settings`
+   - Settings is a singleton - same instance everywhere
 
 2. **Database Sessions**
    - Use FastAPI dependency injection: `db: Session = Depends(get_db)`
@@ -185,6 +199,7 @@ backend/app/
 4. **Error Handling**
    - FastAPI automatically converts exceptions to HTTP responses
    - Use `HTTPException` for API errors
+   - Configuration errors caught at startup with clear validation messages
    - Log errors to console (no logging framework yet in MVP)
 
 ## MVP Constraints
@@ -264,6 +279,33 @@ backend/app/
 4. Static assets go in `backend/static/css/` or `backend/static/js/`
 
 ## Troubleshooting
+
+### Configuration Validation Errors
+
+If the app fails to start with validation errors:
+
+```bash
+# Common issues:
+
+# Invalid DATABASE_URL
+# Error: "DATABASE_URL must be a valid PostgreSQL connection string"
+# Fix: Ensure format is postgresql://user:pass@host:port/dbname
+
+# Invalid email
+# Error: "ALERT_RECIPIENT_EMAIL must be a valid email address"
+# Fix: Use valid email format (user@domain.com)
+
+# Invalid API key
+# Error: "ANTHROPIC_API_KEY must start with 'sk-ant-'"
+# Fix: Check API key from Anthropic Console, ensure complete key copied
+
+# Invalid schedule hour
+# Error: "SCRAPE_SCHEDULE_HOUR must be between 0 and 23"
+# Fix: Use valid hour (0-23)
+
+# Check current config
+uv run python -c "from backend.app.config import settings; print(settings.model_dump())"
+```
 
 ### Database Connection Refused
 ```bash
