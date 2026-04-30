@@ -269,7 +269,7 @@ def delete_all_clients(db: Session) -> int:
         Number of clients deleted
     """
     count = db.query(Client).count()
-    db.query(Client).delete()
+    db.query(Client).delete(synchronize_session='fetch')
     db.commit()
     return count
 
@@ -340,13 +340,6 @@ Examples:
     )
 
     parser.add_argument(
-        "--skip-existing",
-        action="store_true",
-        default=True,
-        help="Skip clients that already exist (default: True)"
-    )
-
-    parser.add_argument(
         "--batch-size",
         type=int,
         default=50,
@@ -369,6 +362,11 @@ def main() -> int:
         # Parse arguments
         args = parse_arguments()
         csv_path = Path(args.csv_file)
+
+        # Validate batch_size
+        if args.batch_size < 1:
+            print("ERROR: --batch-size must be at least 1")
+            return 1
 
         # Read and parse CSV
         clients = read_csv_file(csv_path)
@@ -406,11 +404,11 @@ def main() -> int:
                     print("Import cancelled by user")
                     return 0
 
-            # Import clients
+            # Import clients (always skip existing - use --force to reimport all)
             stats = import_clients(
                 db,
                 clients,
-                skip_existing=args.skip_existing,
+                skip_existing=True,
                 batch_size=args.batch_size
             )
 
