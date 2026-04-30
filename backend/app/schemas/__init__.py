@@ -1,10 +1,13 @@
 """
 Pydantic schemas for request/response validation.
-
-Schemas will be added in subsequent features:
-- client.py: Client schemas
-- publication.py: Publication schemas
-- alert.py: Alert schemas
 """
 
-__all__ = []
+from backend.app.schemas.client import ClientResponse
+from backend.app.schemas.publication import PublicationResponse
+from backend.app.schemas.alert import AlertResponse
+
+__all__ = [
+    "ClientResponse",
+    "PublicationResponse",
+    "AlertResponse",
+]
