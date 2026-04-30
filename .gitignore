@@ -32,5 +32,7 @@ secrets/
 .vscode/
 .idea/
 
-# Claude Code
-.claude/
+# Claude Code - ignore user-specific files, track project commands
+.claude/settings.local.json
+.claude/memory/
+.claude/keybindings.json
