@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:www.congress.gov)",
+      "WebFetch(domain:www.irs.gov)",
+      "WebFetch(domain:www.federalregister.gov)",
+      "WebFetch(domain:taxfoundation.org)",
+      "WebFetch(domain:www.govinfo.gov)",
+      "WebFetch(domain:api.govinfo.gov)",
+      "Bash(uv venv *)",
+      "Bash(uv python *)",
+      "Bash(uv sync *)",
+      "Bash(uv add *)",
+      "Bash(uv run *)"
+    ]
+  }
+}
