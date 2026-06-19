@@ -73,10 +73,11 @@ Scrapers use change detection — store previous state in JSON, compare on each 
 
 ## Road to MVP
 
-1. ✅ Scraping Infrastructure
-2. 🔄 Knowledge Engineering & Normalization (current)
-3. ⏳ Client Profiles & Matching
-4. ⏳ Alerting System
+1. ✅ Scraping Infrastructure (experimental scrapers created)
+2. 🔄 Scraping Infrastructure (current - scheduling, error handling)
+3. ⏳ Knowledge Engineering & Normalization
+4. ⏳ Client Profiles & Matching
+5. ⏳ Alerting System
 
 After MVP: Dashboard, cloud deployment
 

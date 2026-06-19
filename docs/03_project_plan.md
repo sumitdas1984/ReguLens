@@ -19,7 +19,9 @@
 |-------|--------|
 | 1. Project Definition | ✅ |
 | 2. Source Selection | ✅ |
-| 3. Scraping Infrastructure | ✅ |
-| 4. Knowledge Engineering | 🔄 Next |
+| 3. Scraping Infrastructure | 🔄 In Progress |
+| 4. Knowledge Engineering | Pending |
 | 5. Client Matching | Pending |
 | 6. Alerting | Pending |
+
+**Note:** Experimental scrapers created. Scraping infrastructure (scheduling, error handling, productionization) still needs to be designed.

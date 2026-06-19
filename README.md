@@ -13,7 +13,9 @@ AI-powered regulatory monitoring for tax professionals.
 
 ## Status
 
-Working scrapers for IRS Newsroom and IRS IRB.
+**Scrapers:** Experimental scrapers created for IRS Newsroom and IRS IRB.
+
+**Next:** Design scraping infrastructure (scheduling, error handling, state management)
 
 ## Run
 
