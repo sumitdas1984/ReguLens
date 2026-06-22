@@ -1,6 +1,8 @@
 # Project Plan
 
-## Data Sources
+**Domain: Tax**
+
+## Data Sources (IRS Tax Regulatory Updates)
 
 | Source | Content |
 |--------|---------|

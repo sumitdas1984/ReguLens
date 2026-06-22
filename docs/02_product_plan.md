@@ -1,10 +1,16 @@
 # Product Plan
 
+**Domain: Tax**
+
+ReguLens monitors IRS tax regulatory updates and alerts tax professionals when clients are affected.
+
 ## Target Users
 
-- **Tax Partners** — Manage 50-100+ clients, need to know which regulations affect them
+Tax professionals who need to stay current with IRS tax regulatory changes:
+
+- **Tax Partners** — Manage 50-100+ clients, need to know which tax regulations affect them
 - **Compliance Managers** — Track changes for 500+ client accounts
-- **Solo Practitioners** — Can't miss major regulatory changes
+- **Solo Practitioners** — Can't miss major tax regulatory changes
 
 ## Features
 

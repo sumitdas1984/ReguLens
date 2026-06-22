@@ -1,5 +1,7 @@
 # Data Acquisition Strategy
 
+**Domain: Tax** — IRS tax regulatory updates
+
 ## Sources
 
 | Source | Content | Frequency |

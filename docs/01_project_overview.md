@@ -1,6 +1,8 @@
 # Project Overview
 
-ReguLens monitors IRS regulatory updates and alerts tax professionals when clients are affected.
+**Domain: Tax**
+
+ReguLens monitors IRS regulatory updates (tax law, rulings, guidance) and alerts tax professionals when clients are affected.
 
 ## Problem
 
